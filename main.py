@@ -125,6 +125,11 @@ def get_line(All):
 def is_boom(pos, All):
     if All[pos[0]][pos[1]] == element["Boom"]:
         return True
+    return False
+
+
+def get_item(All, pos):
+    return All[pos[0]][pos[1]]
 
 
 def cal_count(Count, All):
@@ -135,8 +140,12 @@ def cal_count(Count, All):
                         (i + 1, j - 1), (i + 1, j), (i + 1, j + 1), (i, j - 1),
                         (i, j + 1)}
 
-            positions = [(r, c) for r, c in all_edge
-                         if 0 < r <= Line and 0 < c <= Line]
+            positions = []
+            for r, c in all_edge:
+                if 1 <= r <= Line:
+                    if r < len(All) and 1 <= c < len(All[r]):
+                        positions.append((r, c))
+
             Count[i][j] = sum(1 for pos in positions if is_boom(pos, All))
 
     return Count
