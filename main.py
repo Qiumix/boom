@@ -101,9 +101,10 @@ def generate_boom(All: list, num: int) -> list:
     from random import randint
     Line = get_line(All)
     if num > Line**2 / 2:
-        All[0] == False
+        All[0][0] = False
         return All
-    rand_line = lambda Line: randint(1, Line)
+    rand_line = (lambda Line: (lambda: randint(1, Line)))(Line)
+    #高阶函数封装Line，配合lambda实现可读性极差
     t = num
     temp = set()
     while t > 0:
@@ -239,23 +240,31 @@ def print_cursor(pos, All):
 
 def run(Line=10, All=None):
     init_program()
+
     if not All:
-        All = [False]
-        All.extend([[element["Unknow"]] * (Line + 1) for _ in range(Line + 1)])
+        All = [[False]] + [[element["Unknow"] for _ in range(Line + 1)]
+                           for _ in range(Line)]
     else:
         Line = get_line(All)
-    print_all(Line, All)
+
     is_flaged = [[False] * (Line + 1) for _ in range(Line + 1)]
     is_revealed = [[False] * (Line + 1) for _ in range(Line + 1)]
-    Count = [[0] * (Line + 1) for _ in range(Line + 1)]
+    Count = [[0 for _ in range(Line + 1)] for _ in range(Line + 1)]
+    print_all(Line, All)
+
+    All = generate_boom(All, Line * 2)
     Count = cal_count(Count, All)
-    all_changeable = [All, is_flaged, is_revealed]
     cursor_pos = (Line // 2 if Line > 1 else 1, Line // 2 if Line > 1 else 1)
+
     show_relevant(*cursor_pos, Line)
 
     show_cursor()
     move(1)
     down(Line + board_line + 3)
+
+
+def start():
+    pass
 
 
 run()
