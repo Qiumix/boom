@@ -1,10 +1,15 @@
 import os
 import colorama
 
-Up = {"j", "w"}
-Down = {"k", "s"}
-Left = {"h", "a"}
-Right = {"l", "d"}
+key_binding = {
+    "Up": ["j", "w"],
+    "Down": ["k", "s"],
+    "Left": ["h", "a"],
+    "Right": ["l", "d"],
+    "Other": ["q", "e"]
+    #"q" -> flag
+    #"e" -> reveal
+}
 BG = colorama.Back.GREEN
 BB = colorama.Back.BLUE
 BY = colorama.Back.YELLOW
@@ -104,7 +109,7 @@ def generate_boom(All: list, num: int) -> list:
         All[0][0] = False
         return All
     rand_line = (lambda Line: (lambda: randint(1, Line)))(Line)
-    #高阶函数封装Line，配合lambda实现可读性极差
+    #高阶函数封装Line，配合lambda实现可读性极差(笑)
     t = num
     temp = set()
     while t > 0:
@@ -155,7 +160,7 @@ def cal_count(Count, All):
 def show_line(line, Line):
     move(board_line + line)
     cout(BG, f"{abs(line):^2}", BB)
-    for temp in range(1, Line + 2):
+    for temp in range(1, Line + 1):
         if temp != line:
             move(board_line + temp, 1)
             relative = temp - line
@@ -179,11 +184,12 @@ def show_col(col, Line):
             cout(BY)
 
 
-def show_relevant(line, col, Line):
+def show_relevant(line, col, Line, All):
     show_line(line, Line)
     show_col(col, Line)
     shell_line, shell_col = move_info(line, col)
-    move(shell_line, shell_col)
+    move(shell_line, shell_col - 1)
+    cout(BG, " ", All[line][col], " ", RES)
 
 
 def click_item(line, col, Line, All, is_flaged, Count, is_revealed):
@@ -238,6 +244,47 @@ def print_cursor(pos, All):
     left
 
 
+def clear_bg(icon, pre_pos):
+    shell_line, shell_col = move_info(pre_pos[0], pre_pos[1])
+    move(shell_line, shell_col - 1)
+    cout(BG, " ", icon, " ", RES)
+
+
+def print_message(Line, message, pre_pos, error=False):
+    move(board_line + Line + (5 if error else 6))
+    cline()
+    cout(message)
+    move(*pre_pos)
+
+
+def clear_error(Line, pre_pos):
+    move(board_line + Line + 6)
+    cline()
+    move(*pre_pos)
+
+
+def get_key(Line, cursor_pos):
+    current_key = None
+    num_buffer = []
+    is_ok = False
+    while not is_ok:
+        try:
+            clear_error(Line, cursor_pos)
+            if num_buffer:
+                print_message(Line, str(num_buffer), cursor_pos)
+            current_key = getch()
+            if current_key in num_key:
+                num_buffer.append(current_key)
+            elif not any(current_key in keys for keys in key_binding.values()):
+                print_message(Line, f"key {current_key} is invalid!",
+                              cursor_pos, True)
+            else:
+                is_ok = True
+        except Exception as e:
+            print_message(Line, f"Error: {str(e)}", cursor_pos, True)
+    return num_buffer, current_key
+
+
 def run(Line=10, All=None):
     init_program()
 
@@ -251,12 +298,28 @@ def run(Line=10, All=None):
     is_revealed = [[False] * (Line + 1) for _ in range(Line + 1)]
     Count = [[0 for _ in range(Line + 1)] for _ in range(Line + 1)]
     print_all(Line, All)
+    cursor_pos = (Line // 2 if Line > 1 else 1, Line // 2 if Line > 1 else 1)
+    show_relevant(*cursor_pos, Line, All)
 
     All = generate_boom(All, Line * 2)
     Count = cal_count(Count, All)
-    cursor_pos = (Line // 2 if Line > 1 else 1, Line // 2 if Line > 1 else 1)
+    # main loop
+    while True:
+        number_buffer, current_key = get_key(Line, cursor_pos)
+        if current_key in key_binding["Other"]:
+            print_message(Line, "", cursor_pos)
+            if current_key == key_binding["Other"][0]:
+                is_flaged[cursor_pos[0]][cursor_pos[1]] = True
+            else:
+                is_revealed[cursor_pos[0]][cursor_pos[1]] = True
+        else:
+            for direction, keys in key_binding.items():
+                if current_key in keys:
+                    motion = direction
+                    break
+            clear_bg(get_item(All, cursor_pos), cursor_pos)
 
-    show_relevant(*cursor_pos, Line)
+    #
 
     show_cursor()
     move(1)
