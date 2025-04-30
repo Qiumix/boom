@@ -49,7 +49,7 @@ def getch():
     """
     高阶函数封装判断平台过程
     """
-    if os.name == "nt":
+    if os.name == "nt":  # Windows NT
         from msvcrt import getch
 
         def win_get():
@@ -285,6 +285,31 @@ def get_key(Line, cursor_pos):
     return num_buffer, current_key
 
 
+def move_cursor(motion, cursor_pos, total, Line):
+    if motion == "Up":
+        return [
+            1 if cursor_pos[0] - total < 1 else cursor_pos[0] - total,
+            cursor_pos[1]
+        ]
+    elif motion == "Down":
+        return [
+            Line if cursor_pos[0] + total > Line else cursor_pos[0] + total,
+            cursor_pos[1]
+        ]
+    elif motion == "Left":
+        return [
+            cursor_pos[0],
+            1 if cursor_pos[1] - total < 1 else cursor_pos[1] - total
+        ]
+    elif motion == "Right":
+        return [
+            cursor_pos[0],
+            Line if cursor_pos[1] + total > Line else cursor_pos[1] + total
+        ]
+    else:
+        return cursor_pos
+
+
 def run(Line=10, All=None):
     init_program()
 
@@ -298,7 +323,7 @@ def run(Line=10, All=None):
     is_revealed = [[False] * (Line + 1) for _ in range(Line + 1)]
     Count = [[0 for _ in range(Line + 1)] for _ in range(Line + 1)]
     print_all(Line, All)
-    cursor_pos = (Line // 2 if Line > 1 else 1, Line // 2 if Line > 1 else 1)
+    cursor_pos = [Line // 2 if Line > 1 else 1, Line // 2 if Line > 1 else 1]
     show_relevant(*cursor_pos, Line, All)
 
     All = generate_boom(All, Line * 2)
@@ -306,18 +331,39 @@ def run(Line=10, All=None):
     # main loop
     while True:
         number_buffer, current_key = get_key(Line, cursor_pos)
+        if number_buffer == []:
+            total = 1
+        else:
+            total = 0
+            for i in number_buffer:
+                total = total * 10 + i
         if current_key in key_binding["Other"]:
             print_message(Line, "", cursor_pos)
             if current_key == key_binding["Other"][0]:
-                is_flaged[cursor_pos[0]][cursor_pos[1]] = True
+                is_flaged[cursor_pos[0]][cursor_pos[1]] = not is_flaged[
+                    cursor_pos[0]][cursor_pos[1]]
+                if is_flaged[cursor_pos[0]][cursor_pos[1]]:
+                    All[cursor_pos[0]][cursor_pos[1]] = element["Flag"]
+                else:
+                    All[cursor_pos[0]][cursor_pos[1]] = element["Unknow"]
+                show_relevant(*cursor_pos, Line, All)
             else:
-                is_revealed[cursor_pos[0]][cursor_pos[1]] = True
+                is_boom_result, All, is_flaged, is_revealed = click_item(
+                    cursor_pos[0], cursor_pos[1], Line, All, is_flaged, Count,
+                    is_revealed)
+                if is_boom_result:
+                    print_message(Line, "BOOM! Game Over!", cursor_pos)
+                    show_relevant(*cursor_pos, Line, All)
+                    break
+                show_relevant(*cursor_pos, Line, All)
         else:
             for direction, keys in key_binding.items():
                 if current_key in keys:
                     motion = direction
                     break
             clear_bg(get_item(All, cursor_pos), cursor_pos)
+            cursor_pos = move_cursor(motion, cursor_pos, total, Line)
+            show_relevant(*cursor_pos, Line, All)
 
     #
 
@@ -330,4 +376,9 @@ def start():
     pass
 
 
-run()
+Line = 10
+All = [[False]] + [[element["Unknow"] for _ in range(Line + 1)]
+                   for _ in range(Line)]
+# run()
+print_all(10, All)
+show_relevant(Line, 1, 1, All)
