@@ -3,10 +3,11 @@ import colorama
 import time
 import signal
 import sys
+import threading
 # 一些常量
 key_binding = {
-    "Up": ["j", "w", "^"],
-    "Down": ["k", "s", "v"],
+    "Up": ["k", "w", "^"],
+    "Down": ["j", "s", "v"],
     "Left": ["h", "a", "<"],
     "Right": ["l", "d", ">"],
     "Other": ["f", "e", "q"]
@@ -14,6 +15,9 @@ key_binding = {
     # "e" --> reveal
     # "q" --> quit
 }
+load_icon = (("◜", "◠", "◝", "◞", "◡", "◟"), ("◰", "◳", "◲", "◱"),
+             ("( ●    )", "(  ●   )", "(   ●  )", "(    ● )", "(     ●)",
+              "(    ● )", "(   ●  )", "(  ●   )", "( ●    )", "(●     )"))
 BG = colorama.Back.GREEN
 BB = colorama.Back.BLUE
 BY = colorama.Back.YELLOW
@@ -111,13 +115,13 @@ def print_all(Line, All):
     """
     cls()
     move(board_line)
-    cout("  +" + "-" * (Line * Width + Width - 1), "+\n")
+    cout("  +" + "-" * (Line * Width + Width - 3), "+\n\r")
     for i in All[1:]:
-        cout("  | ")
+        cout("  |")
         for j in i[1:]:
             cout(" ", j, " ")
-        cout(" |\n")
-    cout("  +" + "-" * (Line * Width + Width - 1), "+")
+        cout("|\n\r")
+    cout("  +" + "-" * (Line * Width + Width - 3), "+")
 
 
 def move_info(line: int, col: int) -> tuple:
@@ -126,14 +130,13 @@ def move_info(line: int, col: int) -> tuple:
     将行列号转终端光标坐标
     """
     global board_line
-    return line + board_line, col * Width
-
+    return line + board_line, col * Width + 2
 
 def generate_boom(All: list, num: int) -> list:
     """
     生成炸弹
     """
-    Origin = list(All)
+    Origin = [i[:] for i in All]
     from random import randint
     Line = get_line(Origin)
 
@@ -210,12 +213,12 @@ def show_col(col, Line):
     """
     _, term_col = move_info(1, col)  # 用不到的变量用下划线
 
-    move(board_line - 1, term_col + 1)
+    move(board_line - 1, term_col - 1)
     cout(colorama.Back.GREEN, f"{col:^3}", BB)
     for temp_col in range(1, Line + 1):
         if temp_col != col:
             _, term_col = move_info(1, temp_col)
-            move(board_line - 1, term_col + 1)
+            move(board_line - 1, term_col - 1)
             relative = temp_col - col
             cout(f"{abs(relative):^3}")
         else:
@@ -275,6 +278,7 @@ def click_item(line, col, Line, All, Origin, is_flaged, Count, is_revealed):
                     inner(l + tl, c + tc)
 
     inner(line, col)
+    print_all(Line, All)
     return False, All, is_flaged, is_revealed
 
 
@@ -307,7 +311,7 @@ def clear_bg(icon, pre_pos):
     """
     term_line, term_col = move_info(pre_pos[0], pre_pos[1])
     move(term_line, term_col - 1)
-    cout(BG, " ", icon, " ", RES)
+    cout(" ", icon, " ", RES)
 
 
 def print_message(Line, message, pre_pos, error=False):
@@ -340,7 +344,6 @@ def get_key(Line, cursor_pos):
         try:
             clear_error(Line, cursor_pos)
             if num_buffer:
-                cline()
                 print_message(Line, *num_buffer, cursor_pos)
             current_key = getch()
             if current_key in num_key:
@@ -380,7 +383,8 @@ def print_boom(pos):
     """
     Boom 的时候红色高亮炸弹
     """
-    move(*move_info(pos))
+    move(*move_info(*pos))
+    left(1)
     cout(colorama.Back.RED, " ", element["Boom"], " ", RES)
 
 
@@ -392,13 +396,13 @@ def count_remain(All, boom_count):
     count = 0
     for i in All[1:]:
         for j in i[1:]:
-            if j == element["Flat"]:
+            if j == element["Flat"] or j in num_key:
                 count += 1
     return (total - count) == boom_count
 
 
 def run(Line=10,
-        boom_count=None,
+        boom_count=3,
         All=None,
         Origin=None,
         is_flaged=None,
@@ -409,10 +413,10 @@ def run(Line=10,
     #判断是否给定数据，并生成缺失数据
 
     if not boom_count:
-        boom_count = 2 * Line
+        boom_count = Line
     boom_count = min(boom_count, Line**2 // 4)  # 限制下炸弹数量
     if not Origin:
-        All = [[False]] + [[element["Unknow"] for _ in range(Line + 1)]
+        All = [[False]] + [[element["Unknow"] for __ in range(Line + 1)]
                            for _ in range(Line)]
         Origin = generate_boom(All, boom_count)
     else:
@@ -456,11 +460,17 @@ def run(Line=10,
                     print_boom(pos)
                     print_message(Line, "BOOM!", pos)
                     show_relevant(*pos, Line, All)
+                    move(1)
+                    down(Line + board_line + 3)
+                    show_cursor()
                     break
                 if count_remain(All, boom_count):
                     print_message(Line, "WIN!", pos)
                     show_relevant(*pos, Line, All)
-                    break
+                    move(1)
+                    down(Line + board_line + 6)
+                    show_cursor()
+                    exit(0)
                 ##########
                 show_relevant(*pos, Line, All)
         else:  # move cursocr
@@ -474,15 +484,12 @@ def run(Line=10,
 
     #
 
-    move(1)
-    down(Line + board_line + 3)
-    show_cursor()
 
 
 #############################
 def start():
 
-    Line = 10
+    Line = 20
 
     def signal_handler():
         """
@@ -503,7 +510,7 @@ def start():
     run(Line)
 
 
-# start()
+start()
 #############################
 
 # Line = 10

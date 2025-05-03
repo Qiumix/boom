@@ -47,8 +47,8 @@ def make_getch():
                         key_mapping = {
                             'A': '^',  # 上
                             'B': 'v',  # 下
-                            'C': '<',  # 右
-                            'D': '>',  # 左
+                            'C': '>',  # 右
+                            'D': '<',  # 左
                         }
                         return key_mapping.get(third, third)
                 return char
