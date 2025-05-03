@@ -29,5 +29,10 @@
 
 # main.print_all(Line, All)
 import os
+from main import cout, cline
 
-print(os.environ.get("SHELL"))
+from demo import getch
+while 1:
+    cout("\r", getch(), "\n")
+    cline()
+    

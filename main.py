@@ -5,13 +5,14 @@ import signal
 import sys
 # 一些常量
 key_binding = {
-    "Up": ["j", "w"],
-    "Down": ["k", "s"],
-    "Left": ["h", "a"],
-    "Right": ["l", "d"],
-    "Other": ["q", "e"]
-    # "q" -> flag
-    # "e" -> reveal
+    "Up": ["j", "w", "^"],
+    "Down": ["k", "s", "v"],
+    "Left": ["h", "a", "<"],
+    "Right": ["l", "d", ">"],
+    "Other": ["f", "e", "q"]
+    # "f" --> flag
+    # "e" --> reveal
+    # "q" --> quit
 }
 BG = colorama.Back.GREEN
 BB = colorama.Back.BLUE
@@ -67,8 +68,15 @@ def make_getch():
     """
     高阶函数封装判断平台过程
     """
-    if os.name == "nt":  # Windows NT内核，其余基本都是类unix(posix)，除了ChromeOS之类的怪胎
-        # os库里name的判定只有nt和posix两种(用的py3.9)
+    if os.name == "nt":  
+        """
+        Windows NT内核，其余基本都是类unix(posix, 是一个标准而不是内核名称)，除了ChromeOS之类的怪胎
+        类unix包括unix, linux, 各种BSD之类的内核
+        pthon3的os库里name的判定只有nt和posix两种, python2有mac之类的, mac也是基于unix
+        sys.platform可以判定具体平台,
+        因为只有win一个独狼不支持termios库和posix里的的一些东西，这里直接用os.name
+        msvctr的getch性能应该更好? 毕竟直接调用visual c++(这玩意好像没开源, 其他系统没有)
+        """
         from msvcrt import getch
 
         def win_get() -> str:
@@ -93,14 +101,14 @@ def make_getch():
         return unix_get
 
 
-getch = make_getch()
+# getch = make_getch() # make_getch有bug，ai在demo里重新了搞了份, 加了方向键的按键映射
+from demo import getch
 
 
 def print_all(Line, All):
     """
     只在开始运行打印一次，后面通过光标移动更改
     """
-    global board_line
     cls()
     move(board_line)
     cout("  +" + "-" * (Line * Width + Width - 1), "+\n")
@@ -121,10 +129,11 @@ def move_info(line: int, col: int) -> tuple:
     return line + board_line, col * Width
 
 
-def generate_boom(Origin: list, num: int) -> list:
+def generate_boom(All: list, num: int) -> list:
     """
     生成炸弹
     """
+    Origin = list(All)
     from random import randint
     Line = get_line(Origin)
 
@@ -472,31 +481,31 @@ def run(Line=10,
 
 #############################
 def start():
-    pass
+
+    Line = 10
+
+    def signal_handler():
+        """
+        劫持信号
+        """
+        move(1)
+        down(Line + board_line + 3)
+        print("Exit game")
+        show_cursor()
+        sys.exit(0)
+
+    if os.name == "nt":
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+    else:
+        signal.signal(signal.SIGTSTP, signal_handler)
+        signal.signal(signal.SIGQUIT, signal_handler)
+    run(Line)
 
 
+# start()
 #############################
-
-
-def signal_handler():
-    """
-    劫持信号
-    """
-    move(1)
-    down(10 + board_line + 3)
-    print("Exit game")
-    show_cursor()
-    sys.exit(0)
-
-
-if os.name == "nt":
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-else:
-    signal.signal(signal.SIGTSTP, signal_handler)
-    signal.signal(signal.SIGQUIT, signal_handler)
 
 # Line = 10
 # All = [[False]] + [[element["Unknow"] for _ in range(Line + 1)]
 #                    for _ in range(Line)]
-run()
