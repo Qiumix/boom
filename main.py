@@ -33,12 +33,18 @@ up = lambda n: cout(f"\033[{n}A")
 down = lambda n: cout(f"\033[{n}B")
 right = lambda n: cout(f"\033[{Width * n}C")
 left = lambda n: cout(f"\033[{Width * n}D")
-# 判断当前shell(os.system用到的命令区别)
-shell = os.environ.get('SHELL').strip().split()
-if "powershell" in shell or "cmd" in shell:
+# 判断当前shell(os.system用到的命令区别, bash touch, cmd/pwsh ni, etc)
+shell_env = os.environ.get('SHELL')
+if shell_env is None:  # Windows systems often don't have SHELL environment variable
     shell_mode = 1
 else:
-    shell_mode = 0
+    shell = shell_env.decode().strip().split() if isinstance(
+        shell_env, bytes) else shell_env.strip().split()
+    if "powershell" in shell or "cmd" in shell:
+        shell_mode = 1
+    else:
+        shell_mode = 0
+#### ai 改了下windows shell环境判定(linux可以直接用原来的, win就有问题)
 
 
 ### 利用 ANSI 转义序列实现清屏移动光标等
@@ -57,7 +63,7 @@ def init_program():
 
 
 # getch实现无缓冲输入(win是c/c++同款，直接调用msvcrt动态链接库，类unix是ai写的)
-def make_getch() -> Callable[[], str]:
+def make_getch():
     """
     高阶函数封装判断平台过程
     """
@@ -371,7 +377,7 @@ def print_boom(pos):
 
 def count_remain(All, boom_count):
     """
-    判定是否win用的
+    判定是否win game用的
     """
     total = get_line(All)**2
     count = 0
@@ -420,7 +426,9 @@ def run(Line=10,
 
     while True:
         total, current_key = get_key(Line, pos)
+
         if current_key in key_binding["Other"]:  # flag or reveal
+
             print_message(Line, "", pos)  # 清除信息，flag与reveal行为不能与数字组合
             if current_key == key_binding["Other"][0]:
                 is_flaged[pos[0]][pos[1]] = not get_item(is_flaged, pos)
@@ -429,14 +437,22 @@ def run(Line=10,
                 else:
                     All[pos[0]][pos[1]] = element["Unknow"]
                 show_relevant(*pos, Line, All)
+
             else:
+
                 is_boom_result, All, is_flaged, is_revealed = click_item(
                     *pos, Line, All, Origin, is_flaged, Count, is_revealed)
+                ##########
                 if is_boom_result:
                     print_boom(pos)
-                    print_message(Line, "BOOM! Game Over!", pos)
+                    print_message(Line, "BOOM!", pos)
                     show_relevant(*pos, Line, All)
                     break
+                if count_remain(All, boom_count):
+                    print_message(Line, "WIN!", pos)
+                    show_relevant(*pos, Line, All)
+                    break
+                ##########
                 show_relevant(*pos, Line, All)
         else:  # move cursocr
             for direction, keys in key_binding.items():
@@ -449,9 +465,9 @@ def run(Line=10,
 
     #
 
-    show_cursor()
     move(1)
     down(Line + board_line + 3)
+    show_cursor()
 
 
 #############################
@@ -466,10 +482,10 @@ def signal_handler():
     """
     劫持信号
     """
-    show_cursor()
     move(1)
     down(10 + board_line + 3)
     print("Exit game")
+    show_cursor()
     sys.exit(0)
 
 
