@@ -16,6 +16,7 @@ key_binding = {
     # "f" --> flag
     # "e" --> reveal
     # "q" --> quit
+    # "bs" --> backspace
 }
 all_key = []
 for key, values in key_binding.items():
@@ -70,7 +71,7 @@ def init_program():
         print("Failed to enable ANSI")
         exit()
 
-    colorama.init(autoreset=False)
+    colorama.init(autoreset=True)
 
 
 # def init_program():  # ai版本, 之前的在windows大部分终端都有问题，不知道为啥
@@ -185,13 +186,13 @@ def print_all(Line, All):
     """
     cls()
     move(board_line)
-    cout(f"  {BW} " + " " * (Line * Width + Width), f"{RES}\n\r")
+    cout(f"  {BW}   " + " " * (Line * Width + Width), f"\n\r")
     for i in All[1:]:
-        cout(f"  {BW}  {RES}")
+        cout(f"  {BW}   ")
         for j in i[1:]:
             cout(" ", j, " ")
-        cout(f"{BW}  {RES}\n\r")
-    cout(f"  {BW} " + " " * (Line * Width + Width), f"{RES}\n\r")
+        cout(f"{BW}   \n\r")
+    cout(f"  {BW}   " + " " * (Line * Width + Width), f"\n\r")
 
 
 def move_info(line: int, col: int) -> tuple:
@@ -200,7 +201,7 @@ def move_info(line: int, col: int) -> tuple:
     将行列号转终端光标坐标
     """
     global board_line
-    return line + board_line, col * Width + 3
+    return line + board_line, col * Width + 4
 
 
 def generate_boom(All: list, num: int) -> list:
@@ -267,15 +268,14 @@ def show_line(line, Line):
     显示相对行号
     """
     move(board_line + line)
-    cout(BG, f"{line:^2}", BB)
+    cout(BG, f"{line:^2}")
     for temp_line in range(1, Line + 1):
         if temp_line != line:
             move(board_line + temp_line, 1)
             relative = temp_line - line
-            cout(f"{abs(relative):^2}")
+            cout(BB if temp_line < line else BY, f"{abs(relative):^2}")
         else:
-            cout(BY)
-    cout(RES)
+            pass
 
 
 def show_col(col, Line):
@@ -285,16 +285,15 @@ def show_col(col, Line):
     _, term_col = move_info(1, col)  # 用不到的变量用下划线
 
     move(board_line - 1, term_col - 1)
-    cout(colorama.Back.GREEN, f"{col:^3}", BB)
+    cout(BG, f"{col:^3}")
     for temp_col in range(1, Line + 1):
         if temp_col != col:
             _, term_col = move_info(1, temp_col)
             move(board_line - 1, term_col - 1)
             relative = temp_col - col
-            cout(f"{abs(relative):^3}")
+            cout(BB if temp_col < col else BY, f"{abs(relative):^3}")
         else:
-            cout(BY)
-    cout(RES)
+            pass
 
 
 def show_relevant(line, col, Line, All):
@@ -305,7 +304,7 @@ def show_relevant(line, col, Line, All):
     show_col(col, Line)
     shell_line, shell_col = move_info(line, col)
     move(shell_line, shell_col - 1)
-    cout(BG, " ", get_item(All, (line, col)), " ", RES)
+    cout(BG, " ", get_item(All, (line, col)), " ")
 
 
 def click_item(line, col, Line, All, Origin, is_flaged, Count, is_revealed):
@@ -449,7 +448,7 @@ def print_boom(pos):
     """
     move(*move_info(*pos))
     left(1)
-    cout(colorama.Back.RED, " ", element["Boom"], " ", RES)
+    cout(colorama.Back.RED, " ", element["Boom"], " ")
 
 
 def count_remain(All, boom_count):
