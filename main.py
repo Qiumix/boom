@@ -28,6 +28,8 @@ BG = colorama.Back.GREEN
 BB = colorama.Back.BLUE
 BW = colorama.Back.WHITE
 BY = colorama.Back.YELLOW
+FB = colorama.Fore.BLACK
+FW = colorama.Fore.WHITE
 RES = colorama.Style.RESET_ALL
 Width = 3
 board_line = 3
@@ -268,12 +270,13 @@ def show_line(line, Line):
     显示相对行号
     """
     move(board_line + line)
-    cout(BG, f"{line:^2}")
+    cout(BG + FB + f"{line:^2}")
     for temp_line in range(1, Line + 1):
         if temp_line != line:
             move(board_line + temp_line, 1)
             relative = temp_line - line
-            cout(BB if temp_line < line else BY, f"{abs(relative):^2}")
+            cout((BB + FW if temp_line < line else BY + FB) +
+                 f"{abs(relative):^2}")
         else:
             pass
 
@@ -285,13 +288,14 @@ def show_col(col, Line):
     _, term_col = move_info(1, col)  # 用不到的变量用下划线
 
     move(board_line - 1, term_col - 1)
-    cout(BG, f"{col:^3}")
+    cout(BG + FB + f"{col:^3}")
     for temp_col in range(1, Line + 1):
         if temp_col != col:
             _, term_col = move_info(1, temp_col)
             move(board_line - 1, term_col - 1)
             relative = temp_col - col
-            cout(BB if temp_col < col else BY, f"{abs(relative):^3}")
+            cout((BB + FW if temp_col < col else BY + FB) +
+                 f"{abs(relative):^3}")
         else:
             pass
 
@@ -304,7 +308,7 @@ def show_relevant(line, col, Line, All):
     show_col(col, Line)
     shell_line, shell_col = move_info(line, col)
     move(shell_line, shell_col - 1)
-    cout(BG, " ", get_item(All, (line, col)), " ")
+    cout(BG + FB + " " + get_item(All, (line, col)) + " ")
 
 
 def click_item(line, col, Line, All, Origin, is_flaged, Count, is_revealed):
@@ -448,7 +452,7 @@ def print_boom(pos):
     """
     move(*move_info(*pos))
     left(1)
-    cout(colorama.Back.RED, " ", element["Boom"], " ")
+    cout(colorama.Back.RED + FB + " " + element["Boom"] + " ")
 
 
 def count_remain(All, boom_count):
