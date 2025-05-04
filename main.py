@@ -3,7 +3,7 @@ import colorama
 import time
 import signal
 import threading
-
+import json
 # 一些常量
 key_binding = {
     "Up": ["k", "w", "^"],
@@ -111,7 +111,7 @@ def make_getch():
                     b'H': '^',  # 上
                     b'P': 'v',  # 下
                     b'K': '<',  # 左
-                    b'M': '>',  # 右
+                    b'M': '>'  # 右
                 }
                 return direction_key.get(temp_c, temp_c)
 
@@ -382,7 +382,7 @@ def get_key(Line, cursor_pos):
                     is_ok = True
             else:
                 print_message(Line, f"Invalid key: '{current_key}'",
-                              current_key, True)
+                              cursor_pos, True)
             print_message(
                 Line, " " * (Line * Width // 2 + Width) +
                 (str(num_buffer) if num_buffer else "") +
