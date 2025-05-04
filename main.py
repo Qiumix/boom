@@ -68,10 +68,13 @@ def init_program():
     colorama.init(autoreset=True)
 
 
-def exiting(Line):
+def exiting(Line, pt: threading.Thread):
     move(1)
     down(Line + board_line + 6)
     show_cursor()
+    if pt:
+        setattr(pt, "stop", True)
+        pt.join(0)
     exit(0)
 
 
@@ -353,7 +356,7 @@ def print_message(Line, message, pre_pos, error=False):
     move(*pre_pos)
 
 
-def get_key(Line, cursor_pos):
+def get_key(Line, cursor_pos, pt):
     """
     获取按键和数字键
     """
@@ -369,7 +372,7 @@ def get_key(Line, cursor_pos):
                 num_buffer = num_buffer * 10 + int(current_key)
             elif current_key in all_key:
                 if current_key == key_binding["Other"][2]:
-                    exiting(Line)
+                    exiting(Line, pt)
                 elif current_key == key_binding["Other"][3]:
                     num_buffer //= 10
                 else:
@@ -426,6 +429,7 @@ def count_remain(All, boom_count):
 
 def run(Line=10,
         boom_count=None,
+        pt=None,
         All=None,
         Origin=None,
         is_flaged=None,
@@ -461,7 +465,7 @@ def run(Line=10,
 
     start = time.time()
     while True:
-        total, current_key = get_key(Line, pos)
+        total, current_key = get_key(Line, pos, pt)
 
         if current_key in key_binding["Other"]:  # flag or reveal
 
@@ -484,11 +488,11 @@ def run(Line=10,
                     print_boom(pos)
                     take_time = time.time() - start
                     print_message(Line, f"BOOM! Time:{take_time:.2f}", pos)
-                    exiting(Line)
+                    exiting(Line, pt)
                 if count_remain(All, boom_count):
                     take_time = time.time() - start
                     print_message(Line, f"WIN! Time:{take_time:.2f}", pos)
-                    exiting(Line)
+                    exiting(Line, pt)
                 ##########
                 show_relevant(*pos, Line, All)
         else:  # move cursocr
@@ -508,16 +512,21 @@ def start():
 
     def print_time_icon():
         count = 0
-        Len = len(load_icon[0])
-        while True:
+        Len = len(load_icon[2])
+        running = True
+        while running:
             move(1)
-            cout(load_icon[0][count % Len], "   ", count / 10)
+            cout(load_icon[2][count % Len], "   ", count / 10)
             count += 1
             time.sleep(0.1)
+            if getattr(threading.current_thread(), "stop", False):
+                break
 
     pt = threading.Thread(target=print_time_icon)
-    # pt.start()
-
+    if True:
+        pt.start()
+    else:
+        pt = None
     Line = 10
     boom_count = 10
 
@@ -533,7 +542,7 @@ def start():
     else:
         signal.signal(signal.SIGTSTP, signal_handler)
         signal.signal(signal.SIGQUIT, signal_handler)
-    run(Line, boom_count)
+    run(Line, boom_count, pt=pt)
 
 
 start()
