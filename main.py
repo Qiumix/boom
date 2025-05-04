@@ -2,10 +2,8 @@ import os
 import colorama
 import time
 import signal
-import typing
 import threading
 
-dict
 # 一些常量
 key_binding = {
     "Up": ["k", "w", "^"],
@@ -74,22 +72,6 @@ def init_program():
         exit()
 
     colorama.init(autoreset=True)
-
-
-# def init_program():  # ai版本, 之前的在windows大部分终端都有问题，不知道为啥
-#     """增强 ANSI 初始化"""
-#     colorama.init(wrap=True)  # 强制包装 stdout/stderr
-#     hide_cursor()
-#     # 显式启用虚拟终端处理 (Windows 10+)
-#     if os.name == 'nt':
-#         from ctypes import windll, byref
-#         from ctypes.wintypes import DWORD
-#         ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
-#         handle = windll.kernel32.GetStdHandle(-11)  # STD_OUTPUT_HANDLE
-#         mode = DWORD()
-#         windll.kernel32.GetConsoleMode(handle, byref(mode))
-#         mode.value |= ENABLE_VIRTUAL_TERMINAL_PROCESSING
-#         windll.kernel32.SetConsoleMode(handle, mode)
 
 
 def exiting(Line):
@@ -356,27 +338,6 @@ def click_item(line, col, Line, All, Origin, is_flaged, Count, is_revealed):
     return False, All, is_flaged, is_revealed
 
 
-def refresh_pos(pos, All, is_current=False):
-    """
-    重新打印某行，没用到，最终直接重新打印某个字符了
-    """
-    move(move_info(pos))
-    left(1)
-    if is_current:
-        cout(BG)
-    cout(" ", All[pos[0]][pos[1]], " ")
-    if is_current:
-        cout(RES)
-
-
-def print_cursor(pos, All):
-    """
-    没用到，忘了写这玩意是干嘛的了，留着先，这个函数还没完成
-    """
-    move(move_info(*pos))
-    left
-
-
 def clear_bg(icon, pre_pos):
     """
     规则为当前光标所在格子高亮
@@ -392,7 +353,7 @@ def print_message(Line, message, pre_pos, error=False):
     """
     打印信息，包括报错和按键
     """
-    move(board_line + Line + (5 if error else 6))
+    move(board_line + Line + (3 if error else 4))
     cline()
     cout(message)
     move(*pre_pos)
@@ -408,7 +369,7 @@ def get_key(Line, cursor_pos):
     while not is_ok:
         try:
             current_key = getch()
-            print_message(Line, "", cursor_pos)
+            print_message(Line, "", cursor_pos)  # 清除消息的，调用里面的cline
             print_message(Line, "", cursor_pos, True)
             if current_key in num_key:
                 num_buffer = num_buffer * 10 + int(current_key)
@@ -422,10 +383,11 @@ def get_key(Line, cursor_pos):
             else:
                 print_message(Line, f"Invalid key: '{current_key}'",
                               current_key, True)
-            print_message(Line, (str(num_buffer) if num_buffer else "") +
-                          ("" if current_key == key_binding["Other"][3]
-                           or current_key in num_key else current_key),
-                          cursor_pos)
+            print_message(
+                Line, " " * (Line * Width // 2 + Width) +
+                (str(num_buffer) if num_buffer else "") +
+                ("" if current_key == key_binding["Other"][3]
+                 or current_key in num_key else current_key), cursor_pos)
         except Exception as e:
             print_message(Line, f"Error: {str(e)}", cursor_pos, True)
             exit(0)
