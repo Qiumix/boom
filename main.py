@@ -65,12 +65,6 @@ def init_program():
     初始化程序
     """
     hide_cursor()
-    try:
-        os.system("")  # ANSI 转义序列支持
-    except Exception:
-        print("Failed to enable ANSI")
-        exit()
-
     colorama.init(autoreset=True)
 
 
