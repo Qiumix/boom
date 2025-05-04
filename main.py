@@ -121,6 +121,10 @@ def make_getch():
         import tty
 
         def getch_unix():
+            # 做完了google了一下发现可以pip install getch，不过懒得搞了，还得弄方向键映射
+            # debian系强制apt装python库挺难受的，apt里没有getch
+            # windows的话装getch包会构建错误，不知道为啥，缺依赖项？
+            # 解决了，需要14.0以上的msvc，没装visual studio所以放弃了，直接用msvcrt不好嘛
             """优化后的Unix getch实现"""
             fd = sys.stdin.fileno()
             old_settings = termios.tcgetattr(fd)
@@ -156,6 +160,7 @@ def make_getch():
                 termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
         return getch_unix
+    import getch as _getch
 
 
 getch = make_getch()
@@ -508,7 +513,7 @@ def run(Line=10,
 
 
 #############################
-def start():
+def start(judge=True):
 
     def print_time_icon():
         count = 0
@@ -523,7 +528,7 @@ def start():
                 break
 
     pt = threading.Thread(target=print_time_icon)
-    if True:
+    if judge:
         pt.start()
     else:
         pt = None
