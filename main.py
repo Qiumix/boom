@@ -494,7 +494,7 @@ def run(Line=10,
                     take_time = time.time() - start
                     print_message(Line, f"BOOM! Time:{take_time:.2f}", pos)
                     from playsound import playsound
-                    playsound("boom.mp3")
+                    # playsound("boom.mp3")
                     exiting(Line, pt)
                 if count_remain(All, boom_count):
                     take_time = time.time() - start
