@@ -17,7 +17,7 @@ key_binding = {
     # "bs" --> backspace
 }
 all_key = []
-for key, values in key_binding.items():
+for values in key_binding.values():
     all_key.extend(values)
 load_icon = (("◜", "◠", "◝", "◞", "◡", "◟"), ("◰", "◳", "◲", "◱"),
              ("( ●    )", "(  ●   )", "(   ●  )", "(    ● )", "(     ●)",
