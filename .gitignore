@@ -3,3 +3,5 @@ launch.json
 __pycache__
 *.md
 *.pptx
+.gitignore
+t.py
