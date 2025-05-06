@@ -554,7 +554,3 @@ def start(judge=False):
 
 start()
 #############################
-
-# Line = 10
-# All = [[False]] + [[element["Unknow"] for _ in range(Line + 1)]
-#                    for _ in range(Line)]
