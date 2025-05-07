@@ -1,9 +1,7 @@
 import os
 import colorama
 import time
-import signal
-import threading
-import json
+import sys
 # 一些常量
 key_binding = {
     "Up": ["k", "w", "^"],
@@ -19,9 +17,6 @@ key_binding = {
 all_key = []
 for values in key_binding.values():
     all_key.extend(values)
-load_icon = (("◜", "◠", "◝", "◞", "◡", "◟"), ("◰", "◳", "◲", "◱"),
-             ("( ●    )", "(  ●   )", "(   ●  )", "(    ● )", "(     ●)",
-              "(    ● )", "(   ●  )", "(  ●   )", "( ●    )", "(●     )"))
 BG = colorama.Back.GREEN
 BB = colorama.Back.BLUE
 BW = colorama.Back.WHITE
@@ -40,23 +35,11 @@ cline = lambda: (cout("\033[2K"))  # 清行
 cls = lambda: (cout("\033[2J\033[H"))  # 清屏
 hide_cursor = lambda: cout("\033[?25l")
 show_cursor = lambda: cout("\033[?25h")
-# 下面四个(相对坐标移动)好像都没用到，用的绝对坐标
+# 相对坐标移动, 用的绝对坐标, 只用到了一半
 up = lambda n: cout(f"\033[{n}A")
 down = lambda n: cout(f"\033[{n}B")
 right = lambda n: cout(f"\033[{n}C")
 left = lambda n: cout(f"\033[{n}D")
-# 判断当前shell(os.system用到的命令区别, bash touch, cmd/pwsh ni, etc)
-shell_env = os.environ.get('SHELL')
-if shell_env is None:  # Windows systems often don't have SHELL environment variable
-    shell_mode = 1
-else:
-    shell = shell_env.decode().strip().split() if isinstance(
-        shell_env, bytes) else shell_env.strip().split()
-    if "powershell" in shell or "cmd" in shell:
-        shell_mode = 1
-    else:
-        shell_mode = 0
-#### ai 改了下windows shell环境判定(linux可以直接用原来的, win就有问题)
 
 
 ### 利用 ANSI 转义序列实现清屏移动光标等
@@ -68,28 +51,25 @@ def init_program():
     colorama.init(autoreset=True)
 
 
-def exiting(Line, pt: threading.Thread):
+def exiting(Line):
     move(1)
     down(Line + board_line + 6)
     show_cursor()
-    if pt:
-        setattr(pt, "stop", True)
-        pt.join(0)
     exit(0)
 
 
-# getch实现无缓冲输入(win是c/c++同款，直接调用msvcrt动态链接库，类unix是ai写的, 看不懂)
+# getch实现无缓冲输入(win是c/c++同款, 直接调用msvcrt动态链接库, 类unix是ai写的, 看不懂)
 def make_getch():
     """
     高阶函数封装判断平台过程
     """
     if os.name == "nt":
         """
-        Windows NT内核，其余基本都是类unix(posix, 是一个标准而不是内核名称)，除了ChromeOS之类的怪胎
+        Windows NT内核, 其余基本都是类unix(posix, 是一个标准而不是内核名称), 除了ChromeOS之类的怪胎
         类unix包括unix, linux, 各种BSD之类的内核
         pthon3的os库里name的判定只有nt和posix两种, python2有mac之类的, mac也是基于unix
         sys.platform可以判定具体平台,
-        因为只有win一个独狼不支持termios库和posix里的的一些东西，这里直接用os.name
+        因为只有win一个独狼不支持termios库和posix里的的一些东西, 这里直接用os.name
         msvctr的getch性能应该更好? 毕竟直接调用visual c++(这玩意好像没开源, 其他系统没有)
         """
         from msvcrt import getch
@@ -116,15 +96,13 @@ def make_getch():
 
         return win_get
     else:
-        import sys
         import termios
         import tty
 
-        def getch_unix():
-            # 做完了google了一下发现可以pip install getch，不过懒得搞了，还得弄方向键映射
-            # debian系强制apt装python库挺难受的，apt里没有getch
-            # windows的话装getch包会构建错误，不知道为啥，缺依赖项？
-            # 解决了，需要14.0以上的msvc，没装visual studio所以放弃了，直接用msvcrt不好嘛
+        def getch_unix():  # 这一行一直到return都是ai写的
+            # 做完了google了一下发现可以pip install getch, 不过懒得搞了, 还得弄方向键映射
+            # debian系强制apt装python库, apt里没有getch, pip要加--user --break-system-packages参数
+            # windows装需要14.0以上的msvc, 没装visual studio所以放弃了, 直接用msvcrt
             """优化后的Unix getch实现"""
             fd = sys.stdin.fileno()
             old_settings = termios.tcgetattr(fd)
@@ -160,7 +138,6 @@ def make_getch():
                 termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
         return getch_unix
-    import getch as _getch
 
 
 getch = make_getch()
@@ -168,7 +145,7 @@ getch = make_getch()
 
 def print_all(Line, All):
     """
-    只在开始运行打印一次，后面通过光标移动更改
+    只在开始运行打印一次, 后面通过光标移动更改
     """
     cls()
     move(board_line)
@@ -199,7 +176,8 @@ def generate_boom(All: list, num: int) -> list:
     Line = get_line(Origin)
 
     rand_line = (lambda Line: (lambda: randint(1, Line)))(Line)
-    # 高阶函数封装参数Line，配合lambda定义调用放一起实现可读性极差(笑)
+    # 高阶函数封装参数Line, 配合lambda定义调用放一起实现可读性极差, 但是用起来方便
+    # 不过这里只用了两次
     temp = set()
     while num > 0:
         pos = rand_line(), rand_line()
@@ -286,7 +264,7 @@ def show_col(col, Line):
 
 def show_relevant(line, col, Line, All):
     """
-    显示相对行列号，高亮当前元素
+    显示相对行列号, 高亮当前元素
     """
     show_line(line, Line)
     show_col(col, Line)
@@ -307,12 +285,13 @@ def click_item(line, col, Line, All, Origin, is_flaged, Count, is_revealed):
 
     def inner(l, c):
         """
-        递归大法好，翻牌子
+        递归大法好, 翻牌子
         """
         nonlocal All, is_flaged, is_revealed
         # nonlocal关键字调用父帧变量
-        # 不加也可以调用，但是如果进行赋值操作会变成局部变量，不会影响父帧中同变量
-        # global同理，不过调用的是全局帧的变量
+        # 不加也可以调用, 但是如果进行赋值操作会变成局部变量, 不会影响父帧中同变量
+        # global同理, 不过调用的是全局帧的变量
+        # 这里因为三个都是可变的(mutable), 相当于c语言中的引用, 所以不用nonlocal也可以
         if l < 1 or l > Line or c < 1 or c > Line or is_revealed[l][c]:
             # 越界或者已经判定过直接pass
             return
@@ -322,12 +301,12 @@ def click_item(line, col, Line, All, Origin, is_flaged, Count, is_revealed):
             return
 
         is_revealed[l][c] = True
-        is_flaged[l][c] = False
+        is_flaged[l][c] = False  #如果被标记过了就显示为未标记已揭开
 
         if Count[l][c] > 0:
             All[l][c] = str(Count[l][c])
             return
-        else:  # 递归主体，其他为base case(基例/基线)
+        else:  # 递归主体, 其他为base case(基例/基线)
             All[l][c] = element["Flat"]
             for tl in [-1, 0, 1]:
                 for tc in [-1, 0, 1]:
@@ -353,7 +332,7 @@ def clear_bg(icon, pre_pos):
 
 def print_message(Line, message, pre_pos, error=False):
     """
-    打印信息，包括报错和按键
+    打印信息, 包括报错和按键
     """
     move(board_line + Line + (3 if error else 4))
     cline()
@@ -361,7 +340,7 @@ def print_message(Line, message, pre_pos, error=False):
     move(*pre_pos)
 
 
-def get_key(Line, cursor_pos, pt):
+def get_key(Line, cursor_pos):
     """
     获取按键和数字键
     """
@@ -371,13 +350,13 @@ def get_key(Line, cursor_pos, pt):
     while not is_ok:
         try:
             current_key = getch()
-            print_message(Line, "", cursor_pos)  # 清除消息的，调用里面的cline
+            print_message(Line, "", cursor_pos)  # 清除消息的, 调用里面的cline
             print_message(Line, "", cursor_pos, True)
             if current_key in num_key:
                 num_buffer = num_buffer * 10 + int(current_key)
             elif current_key in all_key:
                 if current_key == key_binding["Other"][2]:
-                    exiting(Line, pt)
+                    exiting(Line)
                 elif current_key == key_binding["Other"][3]:
                     num_buffer //= 10
                 else:
@@ -398,7 +377,7 @@ def get_key(Line, cursor_pos, pt):
 
 def move_cursor_info(motion, cursor_pos, total, Line):
     """
-    返回移动后的坐标，用max和min简化了，之前的又臭又长
+    返回移动后的坐标, 用max和min简化了, 之前的又臭又长
     """
     if motion == "Up":
         return [max(1, cursor_pos[0] - total), cursor_pos[1]]
@@ -434,7 +413,6 @@ def count_remain(All, boom_count):
 
 def run(Line=10,
         boom_count=None,
-        pt=None,
         All=None,
         Origin=None,
         is_flaged=None,
@@ -442,7 +420,7 @@ def run(Line=10,
         total_time=0):
     init_program()
 
-    #判断是否给定数据，并生成缺失数据
+    #判断是否给定数据, 并生成缺失数据
     if not boom_count:
         boom_count = Line
     boom_count = min(boom_count, Line**2 // 4)  # 限制下炸弹数量
@@ -452,10 +430,8 @@ def run(Line=10,
         Origin = generate_boom(All, boom_count)
     else:
         Line = get_line(All)
-    if not is_flaged:
-        is_flaged = [[False] * (Line + 1) for _ in range(Line + 1)]
-    if not is_revealed:
-        is_revealed = [[False] * (Line + 1) for _ in range(Line + 1)]
+    is_flaged = [[False] * (Line + 1) for _ in range(Line + 1)]
+    is_revealed = [[False] * (Line + 1) for _ in range(Line + 1)]
     Count = [[0 for _ in range(Line + 1)] for _ in range(Line + 1)]
 
     #######################
@@ -466,15 +442,15 @@ def run(Line=10,
 
     Count = cal_count(Count, Origin)
 
-    # mainloop --> 又臭又长 #
+    # mainloop
 
     start = time.time()
     while True:
-        total, current_key = get_key(Line, pos, pt)
+        total, current_key = get_key(Line, pos)
 
         if current_key in key_binding["Other"]:  # flag or reveal
 
-            print_message(Line, "", pos)  # 清除信息，flag与reveal行为不能与数字组合
+            print_message(Line, "", pos)  # 清除信息, flag与reveal行为不能与数字组合
             if current_key == key_binding["Other"][0]:
                 is_flaged[pos[0]][pos[1]] = not get_item(is_flaged, pos)
                 if get_item(is_flaged, pos):
@@ -495,11 +471,11 @@ def run(Line=10,
                     print_message(Line, f"BOOM! Time:{take_time:.2f}", pos)
                     from playsound import playsound
                     # playsound("boom.mp3")
-                    exiting(Line, pt)
+                    exiting(Line)
                 if count_remain(All, boom_count):
                     take_time = time.time() - start
                     print_message(Line, f"WIN! Time:{take_time:.2f}", pos)
-                    exiting(Line, pt)
+                    exiting(Line)
                 ##########
                 show_relevant(*pos, Line, All)
         else:  # move cursocr
@@ -511,45 +487,15 @@ def run(Line=10,
             pos = move_cursor_info(motion, pos, total, Line)
             show_relevant(*pos, Line, All)
 
-    #
-
 
 #############################
-def start(judge=False):
-
-    def print_time_icon():
-        count = 0
-        Len = len(load_icon[2])
-        running = True
-        while running:
-            move(1)
-            cout(load_icon[2][count % Len], "   ", count / 10)
-            count += 1
-            time.sleep(0.1)
-            if getattr(threading.current_thread(), "stop", False):
-                break
-
-    pt = threading.Thread(target=print_time_icon)
-    if judge:
-        pt.start()
-    else:
-        pt = None
-    Line = 10
-    boom_count = 10
-
-    def signal_handler():
-        """
-        劫持信号
-        """
-        exiting(Line)
-
-    if os.name == "nt":
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-    else:
-        signal.signal(signal.SIGTSTP, signal_handler)
-        signal.signal(signal.SIGQUIT, signal_handler)
-    run(Line, boom_count, pt=pt)
+def start():
+    args = sys.argv
+    if not args:
+        args.append(10, 10)
+    elif len(args) == 1:
+        args.append(10)
+    run(*args)
 
 
 start()

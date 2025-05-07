@@ -1,7 +1,8 @@
 launch.json
 .vscode
 __pycache__
-*.md
+t.md
+tt.md
 *.pptx
 .gitignore
 t.py
