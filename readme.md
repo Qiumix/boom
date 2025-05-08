@@ -64,10 +64,3 @@ python main.py Line boom_count
 # Line 与 boom_count都是可选
 
 ```
-## wakatime日志(boom)为项目
-
-![每周编码时间分布](image1.png)
-## debug是因为当时colorama库的原因只能用pydebug运行，python解释器会出问题
-![每周编码时间分布](image2.png)
-## 五一假期期间发现的月报功能，不知为何统计时间会少很多，boom才十小时
-![本月编码时间分布](image3.png)
