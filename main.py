@@ -239,8 +239,6 @@ def show_line(line, Line):
             relative = temp_line - line
             cout((BB + FW if temp_line < line else BY + FB) +
                  f"{abs(relative):^2}")
-        else:
-            pass
 
 
 def show_col(col, Line):
@@ -258,8 +256,6 @@ def show_col(col, Line):
             relative = temp_col - col
             cout((BB + FW if temp_col < col else BY + FB) +
                  f"{abs(relative):^3}")
-        else:
-            pass
 
 
 def show_relevant(line, col, Line, All):
