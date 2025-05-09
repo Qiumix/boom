@@ -284,10 +284,6 @@ def click_item(line, col, Line, All, Origin, is_flaged, Count, is_revealed):
         return True, All, is_flaged, is_revealed
 
     def inner(l, c):
-        """
-        递归大法好, 翻牌子
-        """
-        nonlocal All, is_flaged, is_revealed
         # nonlocal关键字调用父帧变量
         # 不加也可以调用, 但是如果进行赋值操作会变成局部变量, 不会影响父帧中同变量
         # global同理, 不过调用的是全局帧的变量
@@ -411,13 +407,7 @@ def count_remain(All, boom_count):
     return (total - count) == boom_count
 
 
-def run(Line=10,
-        boom_count=None,
-        All=None,
-        Origin=None,
-        is_flaged=None,
-        is_revealed=None,
-        total_time=0):
+def run(Line=10, boom_count=None, All=None, Origin=None):
     init_program()
 
     #判断是否给定数据, 并生成缺失数据
@@ -490,12 +480,8 @@ def run(Line=10,
 
 #############################
 def start():
-    args = sys.argv
-    if not args:
-        args.append(10, 10)
-    elif len(args) == 1:
-        args.append(10)
-    run(*args)
+    # sys.argv[0]为main.py
+    run(*map(int, sys.argv[1:]))
 
 
 start()
